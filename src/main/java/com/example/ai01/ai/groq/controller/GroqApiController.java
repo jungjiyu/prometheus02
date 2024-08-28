@@ -14,6 +14,6 @@ public class GroqApiController {
 
     @PostMapping("/complete")
     public String completeText(@RequestBody GroqApiRequest request) {
-        return groqApiService.completeText(request.getPrompt(), request.getModelType());
+        return groqApiService.completeText(request);
     }
 }

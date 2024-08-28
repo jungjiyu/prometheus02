@@ -1,5 +1,6 @@
 package com.example.ai01.ai.vllm.controller;
 
+import com.example.ai01.ai.vllm.dto.VllmRequest;
 import com.example.ai01.ai.vllm.service.VllmService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,7 +16,7 @@ public class VllmController {
     private VllmService vllmService;
 
     @PostMapping("/complete")
-    public String completeText(@RequestBody String prompt) {
-        return vllmService.completeText(prompt);
+    public String completeText(@RequestBody VllmRequest request) {
+        return vllmService.completeText(request);
     }
 }
