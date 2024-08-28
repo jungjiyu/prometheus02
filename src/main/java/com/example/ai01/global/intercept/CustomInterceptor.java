@@ -23,6 +23,12 @@ public class CustomInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String path = request.getRequestURI();
+        // /metrics 경로에 대해서는 인터셉터를 통과하지 않도록 함
+        if (path.startsWith("/metrics") || path.startsWith("/actuator")) {
+            return true;
+        }
+
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
@@ -33,5 +39,6 @@ public class CustomInterceptor implements HandlerInterceptor {
             }
         }
         return true;
+
     }
 }
