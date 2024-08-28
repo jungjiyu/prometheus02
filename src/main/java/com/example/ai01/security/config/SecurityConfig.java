@@ -27,11 +27,13 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .anyRequest().permitAll()
+                        .requestMatchers("/metrics", "/actuator/**").permitAll()  // 이 경로들에 대해 인증을 요구하지 않음
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 );
+
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
