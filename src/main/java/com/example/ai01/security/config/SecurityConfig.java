@@ -34,6 +34,7 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/groq/complete", "/api/vllm/complete").authenticated()
                         .anyRequest().permitAll()
                 )
                 .sessionManagement(session -> session
