@@ -32,6 +32,9 @@ public class Member extends BaseEntity {
 
     private String phone;
 
+    private String roles;  // 예: "ROLE_USER,ROLE_ADMIN"
+
+
     public static Member DTOtoEntity(MemberRequest.CreateMember dto){
         Member member = new Member();
         member.name = dto.getName();
