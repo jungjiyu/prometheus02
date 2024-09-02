@@ -47,7 +47,7 @@ public class CustomFilter extends OncePerRequestFilter {
 
                 if (userId != null) {
                     log.info("Registering metric for user_id: {}", userId);
-                    meterRegistry.counter("http.server.requests.user", "user_id", userId).increment();
+                    meterRegistry.counter("http.server.requests.user", "user_id", userId).increment(); // 메트릭은 http_server_requests_user_total 이란 이름으로 수집된다
                 } else {
                     log.warn("User ID is null, metric not registered");
                 }

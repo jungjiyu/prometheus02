@@ -1,11 +1,16 @@
 package com.example.ai01.user.controller;
 
+import com.example.ai01.metrics.service.PrometheusService;
 import com.example.ai01.user.dto.request.MemberRequest;
 import com.example.ai01.user.dto.response.MemberResponse;
 import com.example.ai01.user.service.MemberService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @AllArgsConstructor
@@ -13,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class MemberController {
 
     private final MemberService memberService;
+    private final PrometheusService prometheusService;
 
 
     @GetMapping("/{id}")
@@ -42,6 +48,17 @@ public class MemberController {
         MemberResponse.AuthResponse response = MemberResponse.AuthResponse.builder().token(result).build();
         return ResponseEntity.ok(response);
     }
+
+
+    @GetMapping("/usage/json")
+    public Map<String, Object> getUserUsage() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userId = authentication.getName();
+        return prometheusService.getJsonFormatUserUsage(userId);
+    }
+
+
+
 
 
 

@@ -30,7 +30,7 @@ public class DataInitializer implements CommandLineRunner {
                 String email = mock.emails().val();
                 String phone = mock.regex("\\d{3}-\\d{3}-\\d{4}").val();
                 String username = mock.words().val() + i;
-                String password = passwordEncoder.encode("password" + i);
+                String password = passwordEncoder.encode("password" + i); // 생성되는 비밀번호 형식은
 
                 MemberRequest.CreateMember createMember = new MemberRequest.CreateMember();
                 createMember.setName(name);
