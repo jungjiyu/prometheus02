@@ -2,6 +2,7 @@ package com.example.ai01.ai.groq.controller;
 
 import com.example.ai01.ai.groq.dto.GroqApiRequest;
 import com.example.ai01.ai.groq.service.GroqApiService;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

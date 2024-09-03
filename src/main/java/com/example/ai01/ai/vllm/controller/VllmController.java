@@ -2,6 +2,7 @@ package com.example.ai01.ai.vllm.controller;
 
 import com.example.ai01.ai.vllm.dto.VllmRequest;
 import com.example.ai01.ai.vllm.service.VllmService;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

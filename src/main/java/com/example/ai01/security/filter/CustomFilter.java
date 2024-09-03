@@ -29,15 +29,17 @@ public class CustomFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
+        String method = request.getMethod();
 
         // /metrics 및 /actuator 경로를 필터에서 제외
         if (!path.startsWith("/metrics") && !path.startsWith("/actuator") && !path.startsWith("/api/members/login")) {
             log.info("Filtering request to path: {}", path);
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userId = "anonymous"; // 기본값으로 anonymous 설정
+
             if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {
                 Object principal = authentication.getPrincipal();
-                String userId = null;
 
                 if (principal instanceof UserDetails) {
                     userId = ((UserDetails) principal).getUsername();
@@ -45,17 +47,25 @@ public class CustomFilter extends OncePerRequestFilter {
                     userId = principal.toString();
                 }
 
-                if (userId != null) {
-                    log.info("Registering metric for user_id: {}", userId);
-                    meterRegistry.counter("http.server.requests.user", "user_id", userId).increment(); // 메트릭은 http_server_requests_user_total 이란 이름으로 수집된다
-                } else {
-                    log.warn("User ID is null, metric not registered");
-                }
+                log.info("Registering metric for user_id: {}", userId);
             } else {
                 log.warn("Authentication is null or not authenticated");
             }
-        }
 
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response); // 사용자 인증이나 요청 정보 미리 준비 후 status 같은거 get
+
+            int status = response.getStatus();
+
+            // 메트릭 수집
+            meterRegistry.counter("http.server.requests.user",
+                    "user_id", userId,
+                    "method", method,
+                    "status", String.valueOf(status),
+                    "path", path
+            ).increment();
+        } else {
+            filterChain.doFilter(request, response);
+        }
     }
 }
+
