@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,10 +24,15 @@ public class PrometheusService {
 
     private final RestTemplate restTemplate;
 
+    @Value("${prometheus.api.url}")
+    private String prometheusUrl;
+
+
+
     public String query(String query) {
         // 서비스명을 hostname으로 하여 Prometheus에 HTTP 쿼리날리기
         // Prometheus POST 요청 URL << JSON 데이터 보낼때 get 요청 쓰면  "Not enough variable values available to expand" 에러가 발생한다
-        String prometheusUrl = UriComponentsBuilder.fromHttpUrl("http://202.31.200.130:9090/api/v1/query") // 추후 컨테이너 서비스명으로 수정
+        String prometheusUrl = UriComponentsBuilder.fromHttpUrl(this.prometheusUrl)
                 .encode()
                 .toUriString();
 

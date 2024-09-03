@@ -1,23 +1,24 @@
 package com.example.ai01.user.service;
 
+import com.example.ai01.metrics.service.GrafanaService;
 import com.example.ai01.security.util.JwtUtil;
 import com.example.ai01.user.dto.request.MemberRequest;
 import com.example.ai01.user.dto.response.MemberResponse;
 import com.example.ai01.user.entity.Member;
 import com.example.ai01.user.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
-import static com.example.ai01.user.entity.Member.DTOtoEntity;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -26,6 +27,12 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final GrafanaService grafanaService;
+
+    @Value("${server.ip}")
+    private String serverIp;
+
+
 
     @Transactional(readOnly = true)
     public MemberResponse.MemberInfo getMemberInfo(Long id) {
@@ -81,7 +88,23 @@ public class MemberService {
         member.setPassword(passwordEncoder.encode(request.getPassword()));
         memberRepository.save(member);
 
+        // Grafana에서 조직 생성, 사용자 추가, 대시보드 생성
+        grafanaService.createGrafanaUser(member.getUsername(), member.getEmail(), request.getPassword());
+
+        String orgName = member.getUsername() + "_org";
+        int orgId = grafanaService.createOrganization(orgName);
+        log.info("orgId: {}",orgId);
+        grafanaService.addUserToOrganization(member.getUsername(), orgId);
+
+        String dashboardJson = getDashboardJson(member.getUsername());
+        String dataSourceJson = getDataSourceJson();
+        log.info("dashboardJson: {}",dashboardJson);
+
+        grafanaService.createDashboardForOrganization(orgId, dashboardJson);
+        grafanaService.addDataSourceToOrganization(orgId, dataSourceJson);
+
         return "User registered successfully";
+
     }
 
     @Transactional
@@ -97,6 +120,54 @@ public class MemberService {
         // 로그인 성공 시 JWT 토큰 발급
         return jwtUtil.generateToken(member.getUsername());
     }
+
+    private String getDashboardJson(String username) {
+        return "{"
+                + "\"dashboard\": {"
+                + "    \"id\": null,"
+                + "    \"uid\": null,"
+                + "    \"title\": \"" + username + " Dashboard\","
+                + "    \"tags\": [\"user-dashboard\"],"
+                + "    \"timezone\": \"browser\","
+                + "    \"panels\": ["
+                + "        {"
+                + "            \"type\": \"graph\","
+                + "            \"title\": \"User API Requests\","
+                + "            \"gridPos\": {\"x\": 0, \"y\": 0, \"w\": 24, \"h\": 9},"
+                + "            \"datasource\": \"Prometheus\","
+                + "            \"targets\": ["
+                + "                {"
+                + "                    \"expr\": \"sum(increase(http_server_requests_total{user_id='" + username + "'}[1h]))\","
+                + "                    \"legendFormat\": \"{{method}} {{status}}\","
+                + "                    \"interval\": \"5m\""
+                + "                }"
+                + "            ]"
+                + "        }"
+                + "    ],"
+                + "    \"schemaVersion\": 16,"
+                + "    \"version\": 1,"
+                + "    \"refresh\": \"5s\""
+                + "},"
+                + "\"folderId\": 0,"
+                + "\"overwrite\": true"
+                + "}";
+    }
+
+
+
+    private String getDataSourceJson() {
+        return "{"
+                + "\"name\": \"Prometheus\","
+                + "\"type\": \"prometheus\","
+                + "\"url\": \"http://" + serverIp + ":9090\","
+                + "\"access\": \"proxy\","
+                + "\"basicAuth\": false"
+                + "}";
+    }
+
+
+
+
 
 
 
