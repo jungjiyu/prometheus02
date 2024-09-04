@@ -80,92 +80,106 @@ public class GrafanaService {
     private String createServiceAccountAndApiKey(int orgId, String orgName) {
 
         // Switch the org context for the Admin user to the new org:
-        String switchConetextUrl = UriComponentsBuilder.fromHttpUrl(" http://"+adminUsername+":"+adminPassword+"@"+serverIp + ":3000/api/user/using/"+orgId)
+        String switchConetextUrl = UriComponentsBuilder.fromHttpUrl("http://" + serverIp + ":3000/api/user/using/" + orgId)
                 .encode()
                 .toUriString();
 
+        log.info("switchConetextUrl: " + switchConetextUrl);
         HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(adminUsername, adminPassword); // Basic Auth 설정
+        headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(null,headers);
+
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(null, headers); //  request body가 없을 경우에는 HttpEntity를 생성할 때 body 부분에 null을 넣어준다.
         ResponseEntity<String> switchConetextResponse = restTemplate.postForEntity(switchConetextUrl, requestEntity, String.class);
 
-        // 응답 파싱
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            JsonNode rootNode = objectMapper.readTree(switchConetextResponse.getBody());
-            log.info("정상적으로 admin 으로 조직의 컨텍스트가 전환됨: ", rootNode.asText() );
 
-            
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse Switching the org context response", e);
-            throw new RuntimeException("Failed to switch service context to admin", e);
-        }
+        String responseBody = switchConetextResponse.getBody();
+        log.info("정상적으로 admin 으로 조직의 컨텍스트가 전환됨: " + responseBody); // JSON 응답을 그대로 로그로 출력
 
 
-
-
-        String createServiceAccountUrl = UriComponentsBuilder.fromHttpUrl(" http://"+adminUsername+":"+adminPassword+"@"+serverIp + ":3000/api/user/using/"+orgId)
+        // Create a Service Account
+        String createServiceAccountUrl = UriComponentsBuilder.fromHttpUrl("http://" + serverIp + ":3000/api/serviceaccounts")
                 .encode()
                 .toUriString();
+
+
+        HttpHeaders headers2 = new HttpHeaders();
+        headers2.setBasicAuth(adminUsername, adminPassword); // Basic Auth 설정
+        headers2.setContentType(MediaType.APPLICATION_JSON);
+        headers2.setContentType(MediaType.APPLICATION_JSON);
 
 
         Map<String, Object> body = new HashMap<>();
         body.put("name", orgName + "-service-account");
         body.put("role", "Admin"); // 서비스 계정에 할당할 역할 설정
 
-        HttpHeaders headers2 = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<Map<String, Object>> requestEntity2 = new HttpEntity<>(body, headers2);
         ResponseEntity<String> serviceAccountResponse = restTemplate.postForEntity(createServiceAccountUrl, requestEntity2, String.class);
+        String responseBody2 = serviceAccountResponse.getBody();
+        log.info("정상적으로 서비스 계정이 생성됨: " + responseBody2); // JSON 응답을 그대로 로그로 출력
 
 
-
-        // 응답으로부터 서비스 계정 ID 추출
-        ObjectMapper objectMapper = new ObjectMapper();
+        // 응답 파싱 및 서비스 id get
+        ObjectMapper objectMapper2 = new ObjectMapper();
+        Integer serviceAccountId = null;
         try {
-            JsonNode rootNode = objectMapper.readTree(serviceAccountResponse.getBody());
-            int serviceAccountId = rootNode.path("id").asInt();
-            log.info("정상적으로 서비스 계정이 생성됨");
+            JsonNode rootNode = objectMapper2.readTree(serviceAccountResponse.getBody());
+            serviceAccountId = rootNode.path("id").asInt();
+            log.info("생성된 서비스 계정의 id: " + serviceAccountId);
 
-            // 서비스 계정에 대한 API 토큰 생성
-            return createApiTokenForServiceAccount(serviceAccountId);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse service account creation response", e);
             throw new RuntimeException("Failed to create service account", e);
         }
-    }
 
-    private String createApiTokenForServiceAccount(int serviceAccountId) {
-        String apiTokenUrl = UriComponentsBuilder.fromHttpUrl(grafanaUrl + "/api/serviceaccounts/" + serviceAccountId + "/tokens")
+
+// Create a Service Account token
+        String apiTokenUrl = UriComponentsBuilder.fromHttpUrl("http://" + serverIp + ":3000/api/serviceaccounts/" + serviceAccountId + "/tokens")
                 .encode()
                 .toUriString();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(adminUsername, adminPassword);
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        log.info("apiTokenUrl: "+apiTokenUrl);
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", "api-token-for-service-account");
-        body.put("role", "Admin"); // API 토큰에 대한 역할 설정
+// 헤더 설정 (중복된 Content-Type 설정 제거)
+        HttpHeaders headers3 = new HttpHeaders();
+        headers3.setBasicAuth(adminUsername, adminPassword); // Basic Auth 설정
+        headers3.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> tokenResponse = restTemplate.postForEntity(apiTokenUrl, requestEntity, String.class);
+// 요청 본문 설정 (name 필드만 전달)
+        Map<String, Object> body3 = new HashMap<>();
+        body3.put("name", "api-token-for-service-account"); // 공식 문서에 명시된 대로 이름만 포함
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        HttpEntity<Map<String, Object>> requestEntity3 = new HttpEntity<>(body3, headers3);
+
         try {
-            JsonNode rootNode = objectMapper.readTree(tokenResponse.getBody());
-            return rootNode.path("key").asText(); // API 키 반환
+            // POST 요청을 보내서 토큰 생성
+            ResponseEntity<String> tokenResponse = restTemplate.postForEntity(apiTokenUrl, requestEntity3, String.class);
+
+            // 응답 파싱 및 로그 출력
+            ObjectMapper objectMapper3 = new ObjectMapper();
+            JsonNode rootNode = objectMapper3.readTree(tokenResponse.getBody());
+            log.info("정상적으로 API Key가 생성됨: " + rootNode.toString());
+
+            // 생성된 API Key 추출
+            String apiKey = rootNode.path("key").asText();
+            log.info("api key: " + apiKey);
+
+            return apiKey; // API 키 반환
         } catch (JsonProcessingException e) {
-            log.error("Failed to parse API token creation response", e);
-            throw new RuntimeException("Failed to create API token", e);
+            log.error("Failed to parse tokenResponse", e);
+            throw new RuntimeException("Failed to parse tokenResponse", e);
         }
     }
 
+
+
+
     // 회원가입 시 입력한 username과 password를 사용하여 grafana 계정 생성
     public void createGrafanaUser(String username, String email, String password) {
-        String url = UriComponentsBuilder.fromHttpUrl(grafanaUrl + "/api/admin/users")
+        String url = UriComponentsBuilder.fromHttpUrl("http://"+serverIp + ":3000/api/admin/users")
                 .encode()
                 .toUriString();
 
@@ -184,7 +198,7 @@ public class GrafanaService {
     }
 
     public void addUserToOrganization(String username, int orgId) {
-        String url = UriComponentsBuilder.fromHttpUrl(grafanaUrl + "/api/orgs/" + orgId + "/users")
+        String url = UriComponentsBuilder.fromHttpUrl("http://"+serverIp + ":3000/api/orgs/" + orgId + "/users")
                 .encode()
                 .toUriString();
 
@@ -201,11 +215,12 @@ public class GrafanaService {
     }
 
     public void createDashboardForOrganization(int orgId, String dashboardJson) {
-        String url = UriComponentsBuilder.fromHttpUrl(grafanaUrl + "/api/dashboards/db")
+        String url = UriComponentsBuilder.fromHttpUrl("http://"+serverIp + ":3000/api/dashboards/db")
                 .encode()
                 .toUriString();
 
         String apiKey = orgApiKeys.get(orgId); // 조직별 API 키 가져오기
+        log.info("조직"+orgId+"의 api key를 가져옴:"+apiKey);
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey); // 조직별 API 키 사용
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -216,29 +231,27 @@ public class GrafanaService {
 
     public void addDataSourceToOrganization(int orgId, String dataSourceJson) {
         String apiKey = orgApiKeys.get(orgId); // 조직별 API 키 가져오기
+        log.info("조직 " + orgId + "의 api key를 가져옴: " + apiKey);
 
-        String checkUrl = UriComponentsBuilder.fromHttpUrl(grafanaUrl + "/api/datasources/name/Prometheus")
+        String url = UriComponentsBuilder.fromHttpUrl("http://" + serverIp + ":3000/api/datasources")
                 .encode()
                 .toUriString();
+
+        log.info("데이터 소스 생성 URL: " + url);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey); // 조직별 API 키 사용
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        ResponseEntity<String> response;
         try {
-            response = restTemplate.getForEntity(checkUrl, String.class);
-        } catch (HttpClientErrorException.NotFound e) {
-            // 데이터 소스가 존재하지 않으면 추가
-            String url = UriComponentsBuilder.fromHttpUrl(grafanaUrl + "/api/datasources")
-                    .encode()
-                    .toUriString();
-
             HttpEntity<String> requestEntity = new HttpEntity<>(dataSourceJson, headers);
-            restTemplate.postForEntity(url, requestEntity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
+            String result = response.getBody();
+            log.info("데이터 소스를 생성함: " + result);
+
         } catch (Exception e) {
-            throw new RuntimeException("Failed to check data source existence", e);
+            log.error("Failed to create data source", e);
+            throw new RuntimeException("Failed to create data source", e);
         }
     }
-
 }
