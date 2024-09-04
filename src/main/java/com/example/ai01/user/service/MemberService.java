@@ -83,29 +83,32 @@ public class MemberService {
             throw new IllegalArgumentException("Username already exists");
         }
 
+        // 새로운 회원 생성 및 저장
         Member member = new Member();
         member.setUsername(request.getUsername());
         member.setPassword(passwordEncoder.encode(request.getPassword()));
         memberRepository.save(member);
 
-        // Grafana에서 조직 생성, 사용자 추가, 대시보드 생성
+        // Grafana에서 조직 생성, 사용자 추가
         grafanaService.createGrafanaUser(member.getUsername(), member.getEmail(), request.getPassword());
 
         String orgName = member.getUsername() + "_org";
         int orgId = grafanaService.createOrganization(orgName);
-        log.info("orgId: {}",orgId);
+        log.info("orgId: {}", orgId);
         grafanaService.addUserToOrganization(member.getUsername(), orgId);
 
-        String dashboardJson = getDashboardJson(member.getUsername());
+        // 데이터 소스 생성
         String dataSourceJson = getDataSourceJson();
-        log.info("dashboardJson: {}",dashboardJson);
-
-        grafanaService.createDashboardForOrganization(orgId, dashboardJson);
         grafanaService.addDataSourceToOrganization(orgId, dataSourceJson);
 
-        return "User registered successfully";
+        // 대시보드 생성
+        String dashboardJson = getDashboardJson(member.getUsername());
+        log.info("dashboardJson: {}", dashboardJson);
+        grafanaService.createDashboardForOrganization(orgId, dashboardJson);
 
+        return "User registered successfully";
     }
+
 
     @Transactional
     public String login(MemberRequest.LoginRequest request) {

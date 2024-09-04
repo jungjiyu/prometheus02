@@ -50,19 +50,15 @@ public class PrometheusService {
 
     public Map<String, Object> getJsonFormatUserUsage(String userId) {
 
-        // [1h]는 최근 1시간의 데이터를 의미하며, 이 기간 이전의 기록은 포함되지 않는다.
-        // Prometheus 쿼리를 통해 사용자 요청 횟수를 가져옴
+        // Prometheus 쿼리
         String query = String.format("sum(http_server_requests_user_total{user_id=\"%s\"}) by (user_id)", userId);
         String result = query(query);
         log.info("Prometheus 쿼리 결과: {}", result);
 
-
-        // API 요청량과 과금 계산 (간단한 예시)
         double costPerRequest = 0.05; // 예: 요청당 $0.05
         double totalCost = 0.0;
         Map<String, Object> usageData = new HashMap<>();
 
-        // JSON 파싱을 위해 ObjectMapper 사용
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode rootNode;
         try {
@@ -72,31 +68,33 @@ public class PrometheusService {
             return usageData;
         }
 
-        // Prometheus 결과 파싱
         JsonNode dataNode = rootNode.path("data").path("result");
-
         log.info("dataNode: {}", dataNode.toString());
-
 
         if (dataNode.isArray() && dataNode.size() > 0) {
             for (JsonNode node : dataNode) {
-                double requestCount = node.path("value").get(1).asDouble();
-                log.info("requestCount: {}", requestCount);
+                JsonNode valueNode = node.path("value");
+                log.info("valueNode: {}", valueNode.toString());
 
-                // 각 경로별 비용 계산
-                double cost = requestCount * costPerRequest;
-                totalCost += cost;
+                if (valueNode.isArray() && valueNode.size() > 1) {
+                    double requestCount = valueNode.get(1).asDouble();
+                    log.info("requestCount: {}", requestCount);
 
-                // 필요시 사용자별로 비용을 별도 저장 가능
-                usageData.put("request_count", requestCount);
+                    double cost = requestCount * costPerRequest;
+                    totalCost += cost;
+                    usageData.put("request_count", requestCount);
+                } else {
+                    log.warn("valueNode가 예상과 다른 형식입니다: {}", valueNode.toString());
+                }
             }
+        } else {
+            log.warn("No data found for user: {}", userId);
+            usageData.put("request_count", 0);
         }
 
-        // 총 비용과 사용자 ID를 응답에 포함
         usageData.put("user_id", userId);
         usageData.put("total_cost", totalCost);
 
         return usageData;
     }
-
 }
