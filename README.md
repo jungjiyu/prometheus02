@@ -3,7 +3,7 @@
 
 
 ## :heart: 로직
-- JWT 기반으로 애플리케이션에 회원가입 &larr; &larr;
+- JWT 기반으로 애플리케이션에 회원가입 &rarr; Grafana 에서 해당 유저에 대한 계정 자동 생성 &rarr; Grafana 에서 해당 계정에 대한 조직 자동 생성  &rarr; Grafana 에서 해당 조직에 대한 서비스 계정 자동 생성  &rarr; Grafana 에서 해당 서비스 계정에 대한 API 키 자동 생성  &rarr; Grafana 에서 해당 API 키를 활용하여 자동으로 해당 유저에 대한 대시보드 자동 생성
   
   
 ## :octocat: 프로젝트 정보
