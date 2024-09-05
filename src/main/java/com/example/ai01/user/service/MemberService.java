@@ -31,6 +31,12 @@ public class MemberService {
 
     @Value("${server.ip}")
     private String serverIp;
+    @Value("${cost.groq}")
+    private double groqCost;
+
+    @Value("${cost.vllm}")
+    private double vllmCost;
+
 
 
 
@@ -126,8 +132,10 @@ public class MemberService {
 
     private String getDashboardJson(String username) {
 
+        double total_cost = vllmCost + groqCost;
+
         // 각 패널은 경로별 요청 수와 전체 요청 수를 시각화하고, 대시보드의 크기도 사용자가 보기 편리하도록 조정함
-        return "{"
+        String data = "{"
                 + "\"dashboard\": {"
                 + "    \"id\": null,"
                 + "    \"uid\": null,"
@@ -146,7 +154,7 @@ public class MemberService {
                 + "                    \"legendFormat\": \"Total Requests for all paths\""
                 + "                },"
                 + "                {"
-                + "                    \"expr\": \"sum(http_server_requests_user_total{user_id=\\\"" + username + "\\\", path=~\\\"/api/groq/complete|/api/vllm/complete\\\"}) * cost\","
+                + "                    \"expr\": \"sum(http_server_requests_user_total{user_id=\\\"" + username + "\\\", path=~\\\"/api/groq/complete|/api/vllm/complete\\\"}) * " + total_cost + "\","
                 + "                    \"legendFormat\": \"Total Cost for all paths\","
                 + "                    \"refId\": \"B\""
                 + "                }"
@@ -162,7 +170,7 @@ public class MemberService {
                 + "                    \"legendFormat\": \"/api/groq/complete\""
                 + "                },"
                 + "                {"
-                + "                    \"expr\": \"sum(http_server_requests_user_total{user_id=\\\"" + username + "\\\", path=\\\"/api/groq/complete\\\"}) * cost.groq\","
+                + "                    \"expr\": \"sum(http_server_requests_user_total{user_id=\\\"" + username + "\\\", path=\\\"/api/groq/complete\\\"}) * " + groqCost + "\","
                 + "                    \"legendFormat\": \"Cost for /api/groq/complete\","
                 + "                    \"refId\": \"B\""
                 + "                }"
@@ -178,7 +186,7 @@ public class MemberService {
                 + "                    \"legendFormat\": \"/api/vllm/complete\""
                 + "                },"
                 + "                {"
-                + "                    \"expr\": \"sum(http_server_requests_user_total{user_id=\\\"" + username + "\\\", path=\\\"/api/vllm/complete\\\"}) * cost.vllm\","
+                + "                    \"expr\": \"sum(http_server_requests_user_total{user_id=\\\"" + username + "\\\", path=\\\"/api/vllm/complete\\\"}) * " + vllmCost + "\","
                 + "                    \"legendFormat\": \"Cost for /api/vllm/complete\","
                 + "                    \"refId\": \"B\""
                 + "                }"
@@ -188,6 +196,9 @@ public class MemberService {
                 + "},"
                 + "\"overwrite\": true"
                 + "}";
+
+        log.info("generated data: " + data);
+        return data;
     }
 
 
