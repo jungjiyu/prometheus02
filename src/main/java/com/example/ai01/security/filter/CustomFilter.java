@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,13 @@ import java.io.IOException;
 @Slf4j
 @Component
 public class CustomFilter extends OncePerRequestFilter {
+
+
+    @Value("${cost.groq}")
+    private double groqCost;
+
+    @Value("${cost.vllm}")
+    private double vllmCost;
 
     private final MeterRegistry meterRegistry;
 
@@ -55,17 +63,28 @@ public class CustomFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response); // 사용자 인증이나 요청 정보 미리 준비 후 status 같은거 get
 
             int status = response.getStatus();
+            double cost = getCostForPath(path);
 
             // 메트릭 수집
             meterRegistry.counter("http.server.requests.user",
                     "user_id", userId,
                     "method", method,
                     "status", String.valueOf(status),
-                    "path", path
+                    "path", path,
+                    "cost", String.valueOf(cost) // 비용을 라벨로 추가
             ).increment();
         } else {
             filterChain.doFilter(request, response);
         }
     }
-}
+
+    // 특정 path에 따른 비용을 결정하는 로직
+    private double getCostForPath(String path) {
+        if (path.equals("/api/groq/complete")) {
+            return groqCost; // /api/groq/complete 경로의 비용
+        } else if (path.equals("/api/vllm/complete")) {
+            return vllmCost; // /api/vllm/complete 경로의 비용
+        }
+        return 0.0; // 다른 경로는 비용이 없다고 가정
+    }}
 

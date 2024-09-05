@@ -27,6 +27,11 @@ public class PrometheusService {
     @Value("${prometheus.api.url}")
     private String prometheusUrl;
 
+    @Value("${cost.groq}")
+    private double groqCost;
+
+    @Value("${cost.vllm}")
+    private double vllmCost;
 
 
     public String query(String query) {
@@ -49,52 +54,73 @@ public class PrometheusService {
     }
 
     public Map<String, Object> getJsonFormatUserUsage(String userId) {
+        // 각 경로별 요청 수를 구하는 Prometheus 쿼리
+        String queryGroq = String.format("sum(http_server_requests_user_total{user_id=\"%s\", path=\"/api/groq/complete\"})", userId);
+        String queryVllm = String.format("sum(http_server_requests_user_total{user_id=\"%s\", path=\"/api/vllm/complete\"})", userId);
 
-        // Prometheus 쿼리
-        String query = String.format("sum(http_server_requests_user_total{user_id=\"%s\"}) by (user_id)", userId);
-        String result = query(query);
-        log.info("Prometheus 쿼리 결과: {}", result);
+        String resultGroq = query(queryGroq);
+        String resultVllm = query(queryVllm);
 
-        double costPerRequest = 0.05; // 예: 요청당 $0.05
-        double totalCost = 0.0;
+        log.info("Prometheus /api/groq/complete 쿼리 결과: {}", resultGroq);
+        log.info("Prometheus /api/vllm/complete 쿼리 결과: {}", resultVllm);
+
         Map<String, Object> usageData = new HashMap<>();
+        double totalCost = 0.0;
+        double totalRequestCount = 0.0;
 
+        // Groq 쿼리 결과 처리
+        double groqRequestCount = processQueryResult(resultGroq, "/api/groq/complete", groqCost, usageData);
+        // Vllm 쿼리 결과 처리
+        double vllmRequestCount = processQueryResult(resultVllm, "/api/vllm/complete", vllmCost, usageData);
+
+        // 총 요청 수와 총 비용 계산
+        totalRequestCount = groqRequestCount + vllmRequestCount;
+        totalCost = (groqRequestCount * groqCost) + (vllmRequestCount * vllmCost);
+
+        usageData.put("total_request_count", totalRequestCount);  // 전체 요청 수
+        usageData.put("total_cost", totalCost);                  // 전체 비용
+        usageData.put("user_id", userId);
+
+        return usageData;
+    }
+
+    // 쿼리 결과를 처리하는 함수
+    private double processQueryResult(String result, String path, double costPerRequest, Map<String, Object> usageData) {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode rootNode;
         try {
             rootNode = objectMapper.readTree(result);
         } catch (JsonProcessingException e) {
+            log.error("Error processing Prometheus response for {}: {}", path, e.getMessage());
             usageData.put("error", "Error processing Prometheus response");
-            return usageData;
+            return 0.0;
         }
 
         JsonNode dataNode = rootNode.path("data").path("result");
-        log.info("dataNode: {}", dataNode.toString());
+        log.info("dataNode for {}: {}", path, dataNode.toString());
 
+        double requestCount = 0.0;
         if (dataNode.isArray() && dataNode.size() > 0) {
             for (JsonNode node : dataNode) {
                 JsonNode valueNode = node.path("value");
-                log.info("valueNode: {}", valueNode.toString());
+                log.info("valueNode for {}: {}", path, valueNode.toString());
 
                 if (valueNode.isArray() && valueNode.size() > 1) {
-                    double requestCount = valueNode.get(1).asDouble();
-                    log.info("requestCount: {}", requestCount);
-
+                    requestCount = valueNode.get(1).asDouble();
                     double cost = requestCount * costPerRequest;
-                    totalCost += cost;
-                    usageData.put("request_count", requestCount);
+                    usageData.put(path + "_request_count", requestCount);  // 경로별 요청 수
+                    usageData.put(path + "_cost", cost);                  // 경로별 비용
                 } else {
-                    log.warn("valueNode가 예상과 다른 형식입니다: {}", valueNode.toString());
+                    log.warn("valueNode가 예상과 다른 형식입니다 for {}: {}", path, valueNode.toString());
                 }
             }
         } else {
-            log.warn("No data found for user: {}", userId);
-            usageData.put("request_count", 0);
+            log.warn("No data found for path: {}", path);
+            usageData.put(path + "_request_count", 0);
+            usageData.put(path + "_cost", 0.0);
         }
 
-        usageData.put("user_id", userId);
-        usageData.put("total_cost", totalCost);
-
-        return usageData;
+        return requestCount;
     }
+
 }

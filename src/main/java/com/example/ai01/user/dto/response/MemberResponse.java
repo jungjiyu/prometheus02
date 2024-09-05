@@ -24,4 +24,7 @@ public class MemberResponse {
         }
 
 
+
+
+
 }

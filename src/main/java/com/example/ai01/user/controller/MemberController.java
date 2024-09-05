@@ -17,6 +17,7 @@ import java.util.Map;
 @RequestMapping("/api/members")
 public class MemberController {
 
+
     private final MemberService memberService;
     private final PrometheusService prometheusService;
 
@@ -51,12 +52,11 @@ public class MemberController {
 
 
     @GetMapping("/usage/json")
-    public Map<String, Object> getUserUsage() {
+    public Map<String, Object> getJsonFormatUserUsage() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication.getName();
         return prometheusService.getJsonFormatUserUsage(userId);
     }
-
 
 
 
