@@ -7,7 +7,8 @@
 
 
 ## :hammer: 백엔드 아키텍처
-![image](![image.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/e286c22f-2d6f-4a74-b9b2-e2366d4b45be/7aa39b95-1f71-4d2f-9fb4-456141cd8c18/image.png))
+![image](https://github.com/user-attachments/assets/7eb5a179-1dd3-4860-b5f2-78fa834c480c)
+
 
 
 ## :construction: Commit Convention
