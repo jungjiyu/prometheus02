@@ -9,6 +9,7 @@
 
 - 로그인시 발급된 토큰과 함께 주요 API 호출 &rarr; 애플리케이션에서 토큰을 기반으로 (해당 유저에 대한 path 호출량과 그에 대한 과금 정보) 커스텀 매트릭 제공 &rarr; Prometheus 에서 해당 매트릭을 수집  &rarr; Grafana 에서 Prometheus 매트릭을 시각화 
   
+
   
 ## :octocat: 프로젝트 정보
 - 개발 도구 : `SpringBoot`, `JPA`, `MYSQL`, `Prometheus`, `grafana`, `Docker`, `Nginx`, `groq`
