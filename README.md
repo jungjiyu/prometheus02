@@ -3,7 +3,8 @@
 
 
 ## :heart: 로직
-- JWT 토큰 기반 회원가입 -> 
+- JWT 기반으로 애플리케이션에 회원가입 &larr; &larr;
+  
   
 ## :octocat: 프로젝트 정보
 - 개발 도구 : `SpringBoot`, `JPA`, `MYSQL`, `Prometheus`, `grafana`, `Docker`, `Nginx`, `groq`
