@@ -1,6 +1,10 @@
 ## :pushpin: 기획 의도
 - Prometheus 그리고 Grafana를 사용하여 Admin이 유저의 API 호출량과 과금, 서버의 부하 정도를 대시보드를 통해 쉽게 모니터링 할 수 있게하고,  User가 자신의 API 호출량과 과금 정도를 대시보드를 통해 쉽게 파악할 수 있게함
 
+
+## :heart: 로직
+- JWT 토큰 기반 회원가입 -> 
+  
 ## :octocat: 프로젝트 정보
 - 개발 도구 : `SpringBoot`, `JPA`, `MYSQL`, `Prometheus`, `grafana`, `Docker`, `Nginx`, `groq`
 
