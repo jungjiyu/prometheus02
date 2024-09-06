@@ -17,8 +17,19 @@ public class OpenAIApiController {
 
     private final OpenAIApiService openAIService;
 
-    @PostMapping("/completion")
-    public String getOpenAICompletion(@RequestBody OpenAIRequest openAIRequest) throws IOException {
-        return openAIService.getCompletion(openAIRequest);
+    
+    // 글을 첨삭해주는 엔드포인트
+    @PostMapping("/advice")
+    public String enhanceWriting(@RequestBody OpenAIRequest openAIRequest) throws IOException {
+        return openAIService.enhanceWriting(openAIRequest);
     }
+
+    @PostMapping("/harmfulness")
+    public String evaluateHarmfulness(@RequestBody OpenAIRequest openAIRequest) throws IOException {
+        return openAIService.evaluateHarmfulness(openAIRequest);
+    }
+
+
+
+
 }

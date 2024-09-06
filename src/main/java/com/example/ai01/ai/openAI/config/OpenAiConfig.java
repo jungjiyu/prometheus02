@@ -8,9 +8,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenAiConfig {
 
-    @Value("${open.api.key}")
+    @Value("${openai.api.key}")
     private String apiKey;
-
     public String getApiKey() {
         return apiKey;
     }
