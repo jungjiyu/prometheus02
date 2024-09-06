@@ -46,6 +46,11 @@ dependencies {
 
 	//for dummy data
 	implementation group: 'net.andreinc', name: 'mockneat', version: '0.4.8'
+
+	// for openAI
+	implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '5.0.0-alpha.14'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4'  // for Deserializatio
+
 }
 
 tasks.named('test') {
